@@ -251,7 +251,107 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
             if unsupported_prop:
                 unsupported_resource_prop[res] = unsupported_prop
         return unsupported_resource_prop
+    # I am here
+    @log.log
+    def _process_vdu_network_interfaces(self, vdu_id, vdu_dict, properties,
+                                        template_dict):
 
+        def make_port_dict():
+            port_dict = {
+                'type': 'OS::Neutron::Port',
+                'properties': {
+                        'port_security_enabled': False
+                }
+            }
+            port_dict['properties'].setdefault('fixed_ips', [])
+            return port_dict
+
+        def make_mgmt_outputs_dict(port):
+            mgmt_ip = 'mgmt_ip-%s' % vdu_id
+            outputs_dict[mgmt_ip] = {
+                'description': 'management ip address',
+                'value': {
+                    'get_attr': [port, 'fixed_ips',
+                                 0, 'ip_address']
+                }
+            }
+
+        def handle_port_creation(network_param, ip_list=None,
+                                 mgmt_port=False):
+            if ip_list is None:
+                ip_list = []
+            port = '%s-%s-port' % (vdu_id, network_param['network'])
+            port_dict = make_port_dict()
+            if mgmt_port:
+                make_mgmt_outputs_dict(port)
+            for ip in ip_list:
+                port_dict['properties']['fixed_ips'].append({"ip_address": ip})
+            port_dict['properties'].update(network_param)
+            template_dict['resources'][port] = port_dict
+            return port
+
+        networks_list = []
+        outputs_dict = template_dict['outputs']
+        properties['networks'] = networks_list
+        for network_param in vdu_dict[
+                'network_interfaces'].values():
+            port = None
+            if 'addresses' in network_param:
+                ip_list = network_param.pop('addresses', [])
+                if not isinstance(ip_list, list):
+                    raise vnfm.IPAddrInvalidInput()
+                mgmt_flag = network_param.pop('management', False)
+                port = handle_port_creation(network_param, ip_list, mgmt_flag)
+            if network_param.pop('management', False):
+                port = handle_port_creation(network_param, [], True)
+            if port is not None:
+                network_param = {
+                    'port': {'get_resource': port}
+                }
+            networks_list.append(dict(network_param))
+    # I am here
+    @log.log
+    def _process_vdu_ceilometer_alarm(self, vdu_id, vdu_dict, properties,
+                                        template_dict):
+        def make_alarm_high():
+            high_alarm_dict = {
+                'type': 'OS::Ceilometer::Alarm',
+                'properties': {'description': 'scale-up'}
+            }
+            high_alarm_dict['properties'].setdefault('meter', 'cpu_util')
+            monitoring_params = vdu_dict['monitoring_policy']['cpu_util'].get('monitoring_params')
+            high_alarm_dict['properties']['statistic'] = monitoring_params.get('evaluation_periods')
+            high_alarm_dict['properties']['threshold'] = monitoring_params.get('threshold')
+            high_alarm_dict['properties']['alarm_actions'] = {'get_attr', ['web_server_scaledown_policy', 'alarm_url']}
+            high_alarm_dict['properties']['matching_data'] = {'metadata.user_metadata.stack': {'get_param': 'OS::stack_id'}}
+            high_alarm_dict['properties']['comparison_operator'] = 'gt'
+            return high_alarm_dict
+        def make_alarm_low():
+            low_alarm_dict = {
+                'type': 'OS::Ceilometer::Alarm',
+                'properties': {'description': 'scale-down'}
+                }
+            low_alarm_dict['properties'].setdefault('meter', 'cpu_util')
+            monitoring_params = vdu_dict['monitoring_policy']['cpu_util'].get('monitoring_params')
+            low_alarm_dict['properties']['statistic'] = monitoring_params.get('evaluation_periods')
+            low_alarm_dict['properties']['threshold'] = monitoring_params.get('threshold')
+            low_alarm_dict['properties']['alarm_actions'] = {'get_attr', ['web_server_scaledown_policy', 'alarm_url']}
+            low_alarm_dict['properties']['matching_data'] = {'metadata.user_metadata.stack': {'get_param': 'OS::stack_id'}}
+            low_alarm_dict['properties']['comparison_operator'] = 'lt'
+            return low_alarm_dict
+        def alarm_handler(monitoring_policy, actions):
+            high_alarm=make_alarm_high()
+            low_alrm = make_alarm_low()
+            # for act in actions.get('failure_policy','noop'):
+            if actions.get('failure_policy') == 'scale-up':
+                template_dict['cpu_alarm_high'] = high_alarm
+            elif actions.get('failure_policy') == 'scale-down':
+                template_dict['cpu_alarm_low'] = low_alrm
+        monitoring_policy = vdu_dict['monitoring_policy']
+        actions = monitoring_policy['actions']
+        alarm_handler(monitoring_policy, actions)
+
+    #--------------------------------------------------------------------
     @log.log
     def create(self, plugin, context, device, auth_attr):
         LOG.debug(_('device %s'), device)
@@ -373,6 +473,10 @@ class DeviceHeat(abstract_driver.DeviceAbstractDriver):
                         vdu_dict['monitoring_policy'] = {
                             'ping': {'actions': {'failure': 'respawn'}}}
                         vdu_dict.pop('failure_policy')
+
+                    # I am here
+                    if monitoring_policy == 'cpu_util':
+                        self._process_vdu_ceilometer_alarm(self, vdu_id, vdu_dict, properties, template_dict)
 
                     if monitoring_policy != 'noop':
                         monitoring_dict['vdus'][vdu_id] = \

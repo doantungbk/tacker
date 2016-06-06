@@ -53,7 +53,7 @@ class VNFMonitor(object):
 
     OPTS = [
         cfg.ListOpt(
-            'monitor_driver', default=['ping', 'http_ping'],
+            'monitor_driver', default=['ping', 'http_ping', 'amod'],     # I'am here
             help=_('Monitor driver to communicate with '
                    'Hosting VNF/logical service '
                    'instance tacker plugin will use')),
@@ -74,7 +74,7 @@ class VNFMonitor(object):
         if check_intvl is None:
             check_intvl = cfg.CONF.monitor.check_intvl
         self._status_check_intvl = check_intvl
-        LOG.debug('Spawning VNF monitor thread')
+        LOG.debug('Spawning VNF monitor thread')    # Need to change?
         threading.Thread(target=self.__run__).start()
 
     def __run__(self):

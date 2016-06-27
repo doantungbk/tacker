@@ -53,7 +53,7 @@ class VNFMonitor(object):
 
     OPTS = [
         cfg.ListOpt(
-            'monitor_driver', default=['ping', 'http_ping', 'amod'],     # I'am here
+            'monitor_driver', default=['ping', 'http_ping', 'alarm_listener'],     # I'am here: name is alarm_listener
             help=_('Monitor driver to communicate with '
                    'Hosting VNF/logical service '
                    'instance tacker plugin will use')),
@@ -236,7 +236,7 @@ class ActionRespawn(ActionPolicy):
             LOG.info(_('respawned new device %s'), new_device_dict['id'])
 
 
-@ActionPolicy.register('respawn', 'heat')
+@ActionPolicy.register('respawn', 'heat')     ####### big thing here... it is just for 'respawn'
 class ActionRespawnHeat(ActionPolicy):
     @classmethod
     def execute_action(cls, plugin, device_dict, auth_attr):
@@ -250,13 +250,13 @@ class ActionRespawnHeat(ActionPolicy):
             failure_count = int(attributes.get('failure_count', '0')) + 1
             failure_count_str = str(failure_count)
             attributes['failure_count'] = failure_count_str
-            attributes['dead_instance_id_' + failure_count_str] = device_dict[
+            attributes['dead_instance_id_' + failure_count_str] = device_dict[   # device_dict is just for one device
                 'instance_id']
 
             new_device_id = device_id + '-RESPAWN-' + failure_count_str
             attributes = device_dict['attributes'].copy()
             attributes['dead_device_id'] = device_id
-            new_device = {'id': new_device_id, 'attributes': attributes}
+            new_device = {'id': new_device_id, 'attributes': attributes}   # all attributes are remained
             for key in ('tenant_id', 'template_id', 'name', 'vim_id',
                         'placement_attr'):
                 new_device[key] = device_dict[key]
@@ -309,3 +309,11 @@ class ActionLogAndKill(ActionPolicy):
             plugin._vnf_monitor.mark_dead(device_dict['id'])
             plugin.delete_device(t_context.get_admin_context(), device_id)
         LOG.error(_('device %s dead'), device_id)
+
+
+#@ActionPolicy.register('scaling')  for alarm-based monitoring driver
+@ActionPolicy.register('autoscaling', 'heat')
+class ActionScalingHeat(ActionPolicy):
+
+
+

@@ -83,3 +83,8 @@ class VNFMonitorAbstractDriver(extensions.PluginInterface):
                                service_instance):
         # use same monitor driver to communicate with service
         return self.get_name()
+
+    def alarm_webhook(self):
+
+        return alarm_url
+

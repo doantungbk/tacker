@@ -84,14 +84,4 @@ class VNFMonitorAbstractDriver(extensions.PluginInterface):
         # use same monitor driver to communicate with service
         return self.get_name()
 
-    def alarm_webhook(self, plugin, device):
-        """Monitor.
-
-        Get alarm url from Ceilometer
-        analyse and call the appropriate backend.
-
-        :param plugin:
-        :param device:
-        """
-        pass
 

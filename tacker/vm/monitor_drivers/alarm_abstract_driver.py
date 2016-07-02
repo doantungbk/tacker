@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-# Just for alarm
+# Just for alarm. Tomorrow if you want to use it for other driver. totally, it makes sense.
 import abc
 
 import six
@@ -84,14 +84,37 @@ class VNFMonitorAbstractDriver(extensions.PluginInterface):
         # use same monitor driver to communicate with service
         return self.get_name()
 
-    def alarm_webhook(self, plugin, device):
+    def create_alarm (self, plugin, device):
         """Monitor.
 
-        Get alarm url from Ceilometer
-        analyse and call the appropriate backend.
+        Create alarm url from the low-level design
+
 
         :param plugin:
         :param device:
         """
         pass
+    def get_alarm(self, plugin, device):
+        """Monitor.
+
+        Get alarm url from the low-level design
+
+
+        :param plugin:
+        :param device:
+        """
+        pass
+
+    def process_alarm(self, plugin, device):
+        """Monitor.
+
+        Process alarm url from the low-level design
+
+
+        :param plugin:
+        :param device:
+        """
+        pass
+
+
 

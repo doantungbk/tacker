@@ -408,3 +408,6 @@ class VNFMPlugin(vm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnfd['device_template'] = vnfd.pop('vnfd')
         new_dict = self.create_device_template(context, vnfd)
         return new_dict
+
+
+    #something need to be difined here for alarm-monitoring driver

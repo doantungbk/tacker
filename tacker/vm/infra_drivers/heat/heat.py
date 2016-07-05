@@ -33,7 +33,8 @@ from tacker.openstack.common import jsonutils
 from tacker.openstack.common import log as logging
 from tacker.vm.infra_drivers import abstract_driver
 from tacker.vm.tosca import utils as toscautils
-
+from tacker.vm.monitor_drivers.alarm_listener import alarm_listener
+# This lib will provide alarm-url in TOSCA template
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
